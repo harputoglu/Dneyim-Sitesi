@@ -443,7 +443,22 @@ function getMockData() {
 }
 
 // \u2500\u2500\u2500 LocalStorage Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-function loadDB() {
+async function loadDB() {
+  try {
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      const { data, error } = await supabaseClient.from('app_state').select('data').eq('id', 1).single();
+      if (data && data.data) {
+        db = data.data;
+        Object.keys(PAGES).forEach(key => {
+          if (!db[key]) db[key] = { categories: [] };
+          if (!db[key].categories) db[key].categories = [];
+        });
+        localStorage.setItem(LS_KEY, JSON.stringify(db));
+        return;
+      }
+    }
+  } catch (e) { console.warn('Supabase loadDB hatası:', e.message); }
+
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) {
@@ -458,7 +473,7 @@ function loadDB() {
       Object.keys(PAGES).forEach(key => {
         db[key] = mock[key] || { categories: [] };
       });
-      saveDB();
+      await saveDB();
     }
   } catch (e) {
     console.error('DB load error:', e);
@@ -467,29 +482,26 @@ function loadDB() {
   }
 }
 
-function saveDB() {
+async function saveDB() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(db));
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      await supabaseClient.from('app_state').upsert({ id: 1, data: db });
+    }
   } catch (e) {
     console.error('DB save error:', e);
     showToast('Veriler kaydedilemedi!', 'error');
   }
 }
 
-//  AUTH SYSTEM  —  Firebase primary, LocalStorage fallback
-//  Works on file:// (localStorage) and served (Firebase)
+//  AUTH SYSTEM  —  Supabase primary, LocalStorage fallback
+//  Works on file:// (localStorage) and served (Supabase)
 // ═══════════════════════════════════════════════════════════════════════════
 
 const AUTH_LS_KEY = 'antigravity_auth';
 
-function isFirebaseReady() {
-  try {
-    return (
-      typeof firebase !== 'undefined' &&
-      typeof fbAuth   !== 'undefined' &&
-      !firebase.app().options.apiKey.startsWith('YOUR_')
-    );
-  } catch { return false; }
+function isSupabaseReady() {
+  return typeof supabaseClient !== 'undefined' && supabaseClient !== null;
 }
 
 let _currentUser = null;
@@ -511,36 +523,27 @@ function _lsSaveAuth(d) {
   try { localStorage.setItem(AUTH_LS_KEY, JSON.stringify(d)); } catch {}
 }
 
-function initFirebaseAuthListener() {
-  if (!isFirebaseReady()) {
+function initSupabaseAuthListener() {
+  if (!isSupabaseReady()) {
     const d = _lsLoadAuth();
     if (d.currentUser) _setCurrentUser(d.currentUser);
     return;
   }
-  try {
-    fbAuth.onAuthStateChanged(user => {
-      if (user) {
-        _setCurrentUser({ name: user.displayName || user.email.split('@')[0], email: user.email, uid: user.uid });
-      } else {
-        _setCurrentUser(null);
-      }
-    });
-  } catch (e) {
-    console.warn('Firebase auth error, localStorage fallback:', e);
-    const d = _lsLoadAuth();
-    if (d.currentUser) _setCurrentUser(d.currentUser);
-  }
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (session && session.user) {
+      const user = session.user;
+      const name = user.user_metadata?.name || user.email.split('@')[0];
+      _setCurrentUser({ name, email: user.email, uid: user.id });
+    } else {
+      _setCurrentUser(null);
+    }
+  });
 }
 
-async function signInWithGoogle() {
-  if (!isFirebaseReady()) { showAuthError('Firebase bu ortamda kullanılamıyor. E-posta ile giriş yap.'); return; }
-  setAuthLoading(true);
-  try {
-    await fbAuth.signInWithPopup(fbGoogle);
-    closeModal('auth-modal');
-    showToast('Hoş geldin, ' + getCurrentUser()?.name + '! 👋', 'success');
-  } catch (err) { showAuthError(getFriendlyError(err.code)); }
-  finally { setAuthLoading(false); }
+function signInWithGoogle() {
+  const supabaseUrl = "https://rcifcttqhkupbofbaxyq.supabase.co";
+  const redirectUrl = "http://localhost:3000";
+  window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectUrl)}`;
 }
 
 let authMode = 'login';
@@ -567,51 +570,54 @@ async function handleEmailAuth() {
   if (authMode === 'register' && !name) { document.getElementById('auth-name-input')?.classList.add('form-error'); document.getElementById('auth-name-error')?.classList.add('show'); valid = false; }
   if (!valid) return;
 
-  if (isFirebaseReady()) {
+  if (isSupabaseReady()) {
     setAuthLoading(true);
     try {
       if (authMode === 'register') {
-        const cred = await fbAuth.createUserWithEmailAndPassword(email, password);
-        await cred.user.updateProfile({ displayName: name });
-        showToast('Hesabin olusturuldu, hos geldin ' + name + '! 🎉', 'success');
+        const { data, error } = await supabaseClient.auth.signUp({
+          email, password, options: { data: { name } }
+        });
+        if (error) throw error;
+        showToast('Hesabın oluşturuldu, hoş geldin ' + name + '! 🎉', 'success');
       } else {
-        await fbAuth.signInWithEmailAndPassword(email, password);
-        showToast('Tekrar hos geldin, ' + (getCurrentUser()?.name) + '! 👋', 'success');
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        showToast('Tekrar hoş geldin! 👋', 'success');
       }
       closeModal('auth-modal');
       return;
     } catch (err) {
-      const domainErrors = ['auth/unauthorized-domain','auth/network-request-failed','auth/internal-error'];
-      if (!domainErrors.includes(err.code)) { showAuthError(getFriendlyError(err.code)); setAuthLoading(false); return; }
-      console.warn('Firebase unavailable, localStorage fallback:', err.code);
+      showAuthError(err.message); 
+      setAuthLoading(false); 
+      return;
     } finally { setAuthLoading(false); }
   }
 
   const d = _lsLoadAuth();
   const users = d.users || [];
   if (authMode === 'register') {
-    if (users.find(u => u.email === email)) { showAuthError('Bu e-posta zaten kayitli. Giris Yap sekmesini dene.'); return; }
+    if (users.find(u => u.email === email)) { showAuthError('Bu e-posta zaten kayıtlı. Giriş Yap sekmesini dene.'); return; }
     users.push({ email, name, createdAt: new Date().toISOString() });
     _lsSaveAuth({ users, currentUser: { email, name } });
     _setCurrentUser({ email, name, uid: null });
-    showToast('Hesabin olusturuldu, hos geldin ' + name + '! 🎉', 'success');
+    showToast('Hesabın oluşturuldu, hoş geldin ' + name + '! 🎉', 'success');
   } else {
     const existing = users.find(u => u.email === email);
-    if (!existing) { showAuthError('Bu e-posta ile kayitli hesap bulunamadi. Kayit Ol sekmesini dene.'); return; }
+    if (!existing) { showAuthError('Bu e-posta ile kayıtlı hesap bulunamadı. Kayıt Ol sekmesini dene.'); return; }
     _lsSaveAuth({ users, currentUser: { email, name: existing.name } });
     _setCurrentUser({ email, name: existing.name, uid: null });
-    showToast('Tekrar hos geldin, ' + existing.name + '! 👋', 'success');
+    showToast('Tekrar hoş geldin, ' + existing.name + '! 👋', 'success');
   }
   closeModal('auth-modal');
 }
 
 async function logout() {
-  if (isFirebaseReady()) { try { await fbAuth.signOut(); } catch {} }
+  if (isSupabaseReady()) { try { await supabaseClient.auth.signOut(); } catch {} }
   const d = _lsLoadAuth();
   d.currentUser = null;
   _lsSaveAuth(d);
   _setCurrentUser(null);
-  showToast('Guvenle cikis yapildi.', 'info');
+  showToast('Güvenle çıkış yapıldı.', 'info');
 }
 
 function updateAuthUI() {
@@ -685,8 +691,8 @@ function getFriendlyError(code) {
     'auth/network-request-failed': 'Ag hatasi. Internet baglantiyi kontrol et.',
     'auth/too-many-requests':      'Cok fazla basarisiz deneme. Lutfen bekle.',
     'auth/popup-blocked':          "Tarayicin popup'i engelledi. Popup'lara izin ver.",
-    'auth/operation-not-allowed':  "Bu giris yontemi Firebase'de etkinlestirilmemis.",
-    'auth/unauthorized-domain':    "Bu domain Firebase'de yetkili degil. localhost kullan.",
+    'auth/operation-not-allowed':  "Bu giris yontemi etkinlestirilmemis.",
+    'auth/unauthorized-domain':    "Bu domain yetkili degil.",
   };
   return map[code] || 'Hata olustu (' + code + ').';
 }
@@ -2127,12 +2133,12 @@ function markQuestionAnswered(page, catId, topicId, questionId, answerTopicId) {
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-(function init() {
-  loadDB();
+(async function init() {
+  await loadDB();
   showView('welcome-view');
 
-  // Start Firebase auth listener (session persistence)
-  initFirebaseAuthListener();
+  // Start Supabase auth listener (session persistence)
+  initSupabaseAuthListener();
 
   // Initial UI state (will be immediately overridden by onAuthStateChanged)
   updateAuthUI();

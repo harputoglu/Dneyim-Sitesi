@@ -19,9 +19,8 @@
     };
   </script>
 
-  <!-- ─── Firebase v9 Compat CDN ─── -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <!-- ─── Supabase JS CDN ─── -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -284,7 +283,8 @@
     <div class="auth-modal-body">
 
       <!-- Google Sign-In -->
-      <button class="btn-google-signin" id="btn-google" onclick="signInWithGoogle()">
+      <!-- Google Sign-In (Doğrudan Supabase Yönlendirmeli Yeni Hali) -->
+      <button class="btn-google-signin" id="btn-google" onclick="window.location.href='https://rcifcttqhkupbofbaxyq.supabase.co/auth/v1/authorize?provider=google&redirect_to=http://localhost:3000'">
         <svg width="18" height="18" viewBox="0 0 48 48">
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
           <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -338,7 +338,7 @@
       </div>
 
       <div id="auth-config-warning" style="display:none;" class="auth-config-warn">
-        ⚠️ Firebase config eksik. <code>firebase-config.js</code> dosyasındaki placeholder değerleri kendi Firebase proje bilgilerinle değiştir.
+        ⚠️ Supabase config eksik. <code>supabase-config.js</code> dosyasındaki placeholder değerleri kendi Supabase proje bilgilerinle değiştir.
       </div>
     </div>
   </div>
@@ -548,8 +548,8 @@
 </div>
 
 <!-- ═══════════════════════════════════════ SCRIPTS ═══════════════════════════════ -->
-<!-- Firebase config (kendi bilgilerinle doldur) -->
-<script src="firebase-config.js"></script>
+<!-- Supabase config -->
+<script src="supabase-config.js"></script>
 <!-- Ana uygulama -->
 <script src="app.js"></script>
 </body>
