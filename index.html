@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kültür Sanat ve Yaşam Sözlüğü 🌿 — Ortak Deneyim Platformu</title>
+  <meta name="description" content="Arkadaş grubumuzun yemek tarifi, günlük deneyim, teknoloji incelemeleri ve seyahat notlarını paylaştığı özel dijital köşemiz." />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css" />
+
+  <script>
+    tailwind.config = {
+      corePlugins: { preflight: false },
+    };
+  </script>
+
+  <!-- ─── Firebase v9 Compat CDN ─── -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════ SIDEBAR ═══════════════════════ -->
+<aside id="sidebar">
+  <div class="brand">
+    <img src="group.jpg" alt="Arkadaş grubu" class="brand-group-img" />
+    <h1>Kültür Sanat ve<br/>Yaşam Sözlüğü</h1>
+    <p>Ortak deneyim köşemiz</p>
+  </div>
+
+  <nav id="main-nav" style="padding: 12px 0; flex:1;">
+    <div class="nav-item" data-page="mutfak" id="nav-mutfak" onclick="navigateTo('mutfak')" role="button" tabindex="0">
+      <div class="icon-wrap" style="background:#EAF2EE;">🍳</div>
+      <span>Mutfaktan Esintiler</span>
+    </div>
+    <div class="nav-item" data-page="gunluk" id="nav-gunluk" onclick="navigateTo('gunluk')" role="button" tabindex="0">
+      <div class="icon-wrap" style="background:#FFF3E3;">📔</div>
+      <span>Günlük Seyir Defteri</span>
+    </div>
+    <div class="nav-item" data-page="teknoloji" id="nav-teknoloji" onclick="navigateTo('teknoloji')" role="button" tabindex="0">
+      <div class="icon-wrap" style="background:#E6F0FA;">💻</div>
+      <span>Teknoloji &amp; İnceleme</span>
+    </div>
+    <div class="nav-item" data-page="gezi" id="nav-gezi" onclick="navigateTo('gezi')" role="button" tabindex="0">
+      <div class="icon-wrap" style="background:#F3E8FF;">🧭</div>
+      <span>Gezi Rehberi &amp; Rotalar</span>
+    </div>
+    <div class="nav-item" data-page="okumuyorlar" id="nav-okumuyorlar" onclick="navigateTo('okumuyorlar')" role="button" tabindex="0">
+      <div class="icon-wrap" style="background:#EAF6F6;">📚</div>
+      <span>Okumuyorlar Abi, Düşünmüyorlar</span>
+    </div>
+    <div class="nav-item" data-page="dizi_film" id="nav-dizi_film" onclick="navigateTo('dizi_film')" role="button" tabindex="0">
+      <div class="icon-wrap" style="background:#FFF3E3;">🎬</div>
+      <span>Dizi &amp; Film</span>
+    </div>
+    <div class="nav-item" data-page="satin_alma" id="nav-satin_alma" onclick="navigateTo('satin_alma')" role="button" tabindex="0">
+      <div class="icon-wrap" style="background:#E6F0FA;">🛒</div>
+      <span>Satın Alma Rehberi</span>
+    </div>
+    
+    <div style="margin: 16px 0; border-top: 1px solid var(--border-soft);"></div>
+
+    <div class="nav-item" data-page="favoriler" id="nav-favoriler" onclick="navigateTo('favoriler')" role="button" tabindex="0">
+      <div class="icon-wrap" style="background:#FEF3C7;">⭐</div>
+      <span>Favorilerim</span>
+    </div>
+  </nav>
+
+  <!-- ── Auth Panel ── -->
+  <div id="auth-panel" class="auth-panel">
+    <div id="auth-logged-out">
+      <button class="btn-auth-open" onclick="openModal('auth-modal')">
+        <i class="fa-solid fa-user-plus"></i> Giriş Yap / Kayıt Ol
+      </button>
+    </div>
+    <div id="auth-logged-in" style="display:none;">
+      <div class="auth-user-card">
+        <div class="auth-avatar" id="sidebar-avatar">?</div>
+        <div class="auth-user-info">
+          <span class="auth-user-name" id="sidebar-user-name">İsim</span>
+          <span class="auth-user-email" id="sidebar-user-email">email@mail.com</span>
+        </div>
+      </div>
+      <button class="btn-auth-logout" onclick="logout()">
+        <i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
+      </button>
+    </div>
+  </div>
+
+  <div style="padding:10px 16px 16px; border-top:1.5px solid var(--border-soft);">
+    <p style="font-size:0.7rem;color:var(--text-soft);text-align:center;line-height:1.5;">
+      💾 Veriler tarayıcında güvende<br />
+      <span style="opacity:0.6;">LocalStorage ile senkronize</span>
+    </p>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════ DRAWER OVERLAY (Mobile) ══════════════════ -->
+<div id="drawer-overlay" onclick="closeSidebar()"></div>
+
+<!-- ═══════════════════════════════════════ MAIN WRAP ════════════════════ -->
+<div id="main-wrap">
+
+  <!-- ── Top Bar (Mobile Only) ── -->
+  <header id="topbar">
+    <button class="btn btn-icon-only" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menü aç" style="border-radius:10px;width:40px;height:40px;">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <span id="topbar-title" style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:0.93rem;flex:1;">
+      <img src="group.jpg" alt="" style="width:28px;height:28px;border-radius:7px;object-fit:cover;object-position:center top;" />
+      Kültür Sanat ve Yaşam Sözlüğü
+    </span>
+  </header>
+
+  <!-- ── Main Content Area ── -->
+  <main id="main-content">
+
+    <!-- ── GLOBAL SEARCH BAR ── -->
+    <div class="global-search-wrapper" style="position: sticky; top: 0; z-index: 40; margin-bottom: 20px;">
+      <div class="search-input-container" style="position: relative;">
+        <i class="fa-solid fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-soft);"></i>
+        <input type="text" id="global-search-input" placeholder="Yazılarda ve kategorilerde ara..." oninput="handleGlobalSearch(this.value)" autocomplete="off" style="width: 100%; padding: 12px 14px 12px 38px; border-radius: 12px; border: 1px solid var(--border-soft); box-shadow: 0 4px 12px rgba(0,0,0,0.05); font-size: 0.95rem; background: var(--bg-card); color: var(--text-main); transition: all 0.2s;" />
+      </div>
+      <div id="search-results-overlay" style="display: none; position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: var(--bg-card); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); border: 1px solid var(--border-soft); max-height: 400px; overflow-y: auto; z-index: 50; padding: 8px 0;">
+        <!-- Results injected here -->
+      </div>
+    </div>
+
+    <!-- ─────────────── WELCOME VIEW ─────────────── -->
+    <div id="welcome-view" class="animate-in">
+      <div class="welcome-hero">
+        <img src="group.jpg" alt="Arkadaş grubu" class="welcome-group-img" />
+        <h2>Hoş Geldin!</h2>
+        <p>Arkadaş grubumuzun yemek tarifleri, günlük anlar, teknoloji keşifleri ve seyahat rotalarını paylaştığı özel köşemiz. Sol menüden bir bölüm seç ve keşfetmeye başla!</p>
+
+        <div class="welcome-cards">
+          <div class="welcome-card" onclick="navigateTo('mutfak')">
+            <div class="wc-emoji">🍳</div>
+            <div class="wc-title">Mutfaktan Esintiler</div>
+            <div class="wc-desc">Tarifler, püf noktaları, favoriler</div>
+          </div>
+          <div class="welcome-card" onclick="navigateTo('gunluk')">
+            <div class="wc-emoji">📔</div>
+            <div class="wc-title">Günlük Seyir</div>
+            <div class="wc-desc">Hayattan kesitler, anlar</div>
+          </div>
+          <div class="welcome-card" onclick="navigateTo('teknoloji')">
+            <div class="wc-emoji">💻</div>
+            <div class="wc-title">Teknoloji</div>
+            <div class="wc-desc">İncelemeler, öneriler</div>
+          </div>
+          <div class="welcome-card" onclick="navigateTo('gezi')">
+            <div class="wc-emoji">🧭</div>
+            <div class="wc-title">Gezi Rehberi</div>
+            <div class="wc-desc">Rotalar, seyahat notları</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────── CATEGORY LIST VIEW ─────────────── -->
+    <div id="category-view" style="display:none;">
+      <div class="breadcrumb" id="cat-breadcrumb"></div>
+      <div class="page-header">
+        <div class="heading-block">
+          <h2 id="cat-page-title"></h2>
+          <p id="cat-page-desc" style="color:var(--text-soft);font-size:0.83rem;margin-top:4px;"></p>
+        </div>
+        <button class="btn" id="new-cat-btn" onclick="openModal('category-modal')">
+          <i class="fa-solid fa-plus"></i> Yeni Kategori
+        </button>
+      </div>
+      <!-- Filter Bar (mutfak only — injected by JS) -->
+      <div id="category-filter-bar" style="display:none;" class="filter-bar"></div>
+      <div id="categories-grid" class="cards-grid"></div>
+    </div>
+
+    <!-- ─────────────── TOPIC LIST VIEW ─────────────── -->
+    <div id="topic-view" style="display:none;">
+      <div class="breadcrumb" id="topic-breadcrumb"></div>
+      <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div class="heading-block">
+          <h2 id="topic-cat-name"></h2>
+          <p id="topic-cat-desc" style="color:var(--text-soft);font-size:0.83rem;margin-top:4px;"></p>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <select id="sort-select" onchange="renderTopicList()" style="padding: 8px 12px; border: 1px solid var(--border-soft); border-radius: 8px; font-size: 0.85rem; background: var(--bg-card); cursor: pointer; color: var(--text-main);">
+            <option value="newest">En Yeni</option>
+            <option value="most_liked">En Çok Beğenilenler</option>
+          </select>
+          <button class="btn" id="new-topic-btn" onclick="openModal('topic-modal')">
+            <i class="fa-solid fa-pen-to-square"></i> Yeni Yazı Ekle
+          </button>
+        </div>
+      </div>
+      <!-- Filter Bar (mutfak only — injected by JS) -->
+      <div id="topic-filter-bar" style="display:none;" class="filter-bar"></div>
+      <div id="topics-list" style="display:flex;flex-direction:column;gap:14px;"></div>
+    </div>
+
+    <!-- ─────────────── TOPIC DETAIL VIEW ─────────────── -->
+    <div id="topic-detail-view" style="display:none;">
+      <div class="breadcrumb" id="detail-breadcrumb"></div>
+
+      <div class="detail-card animate-in">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px;">
+          <h2 class="detail-title" id="detail-title"></h2>
+          <button class="btn btn-ghost" style="font-size:0.8rem;padding:7px 14px;flex-shrink:0;" onclick="openEditTopicModal()">
+            <i class="fa-solid fa-pencil"></i> Düzenle
+          </button>
+        </div>
+        <!-- Reply-to banner (injected by JS when topic is a Q&A reply) -->
+        <div id="reply-banner" style="display:none;" class="reply-banner"></div>
+        <!-- Author info -->
+        <div id="detail-author" class="detail-author-row" style="display:none;"></div>
+        <!-- Tags (mutfak) -->
+        <div id="detail-tags" class="detail-tags-row" style="display:none;"></div>
+        <div class="detail-content" id="detail-content"></div>
+        <!-- Image Gallery -->
+        <div id="detail-images" class="detail-images-section" style="display:none;">
+          <div class="links-label"><i class="fa-solid fa-images" style="margin-right:4px;"></i> Fotoğraflar</div>
+          <div class="images-grid" id="detail-images-grid"></div>
+        </div>
+        <div id="detail-links" class="links-section" style="display:none;">
+          <div class="links-label"><i class="fa-solid fa-link" style="margin-right:4px;"></i> İlgili Bağlantılar</div>
+          <div class="link-buttons" id="detail-link-buttons"></div>
+        </div>
+      </div>
+
+      <!-- Comments -->
+      <div class="comments-section animate-in stagger-2">
+        <h3><i class="fa-solid fa-comments"></i> Yorumlar <span id="comment-count" class="badge" style="font-size:0.73rem;"></span></h3>
+        <div id="comments-list"></div>
+        <hr class="section-divider" />
+        <div class="comment-form">
+          <h4 style="font-size:0.88rem;font-weight:700;margin-bottom:12px;">💬 Yorum Yap</h4>
+          <input type="text" id="comment-author" placeholder="Adın (isteğe bağlı)" maxlength="40" />
+          <textarea id="comment-text" placeholder="Ne düşündün?"></textarea>
+          <button class="btn btn-submit" id="comment-submit-btn" onclick="submitComment()">
+            <i class="fa-solid fa-paper-plane"></i> Gönder
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Q&A Section ── -->
+      <div class="qa-section animate-in stagger-3" id="qa-section">
+        <div class="qa-section-header">
+          <i class="fa-solid fa-circle-question"></i>
+          <h3>Bu Konu Hakkında Sorular</h3>
+          <span id="qa-count" class="badge" style="font-size:0.73rem;"></span>
+        </div>
+        <div id="qa-list"></div>
+        <hr class="section-divider" />
+        <div class="qa-form" id="qa-form">
+          <h4 style="font-size:0.88rem;font-weight:700;margin-bottom:12px;"><i class="fa-solid fa-question" style="margin-right:6px;"></i>Soru Sor</h4>
+          <div id="qa-login-prompt" style="display:none;" class="qa-login-prompt">
+            <i class="fa-solid fa-lock"></i> Soru sormak için <button onclick="openModal('auth-modal')" class="inline-link">giriş yapmalısın</button>.
+          </div>
+          <div id="qa-input-area">
+            <textarea id="qa-question-text" placeholder="Bu içerik hakkında aklındaki soruyu yaz..." style="height:80px;"></textarea>
+            <button class="btn qa-submit-btn" id="qa-submit-btn" onclick="submitQuestion()">
+              <i class="fa-solid fa-paper-plane"></i> Soruyu Gönder
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════ AUTH MODAL ═══════════════════════════ -->
+<div class="modal-overlay" id="auth-modal" onclick="closeModalOnOverlay(event,'auth-modal')">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <h3>🔑 Hesabına Giriş Yap</h3>
+      <button class="modal-close" onclick="closeModal('auth-modal')">&#10005;</button>
+    </div>
+    <div class="auth-modal-body">
+
+      <!-- Google Sign-In -->
+      <button class="btn-google-signin" id="btn-google" onclick="signInWithGoogle()">
+        <svg width="18" height="18" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Google ile Giriş Yap
+      </button>
+
+      <div class="auth-divider"><span>veya e-posta ile</span></div>
+
+      <!-- Mode Toggle -->
+      <div class="auth-mode-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Giriş Yap</button>
+        <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Kayıt Ol</button>
+      </div>
+
+      <!-- Name field (register only) -->
+      <div class="form-group" id="auth-name-group" style="display:none;">
+        <label for="auth-name-input"><i class="fa-solid fa-signature" style="margin-right:5px;"></i>İsminiz <span style="color:#DC2626;">*</span></label>
+        <input type="text" id="auth-name-input" placeholder="Ahmet, Zeynep..." maxlength="40" />
+        <div class="form-error-msg" id="auth-name-error">Lütfen isminizi girin.</div>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label for="auth-email-input"><i class="fa-solid fa-envelope" style="margin-right:5px;"></i>E-posta <span style="color:#DC2626;">*</span></label>
+        <input type="email" id="auth-email-input" placeholder="ornek@mail.com" maxlength="100" />
+        <div class="form-error-msg" id="auth-email-error">Geçerli bir e-posta girin.</div>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label for="auth-password-input"><i class="fa-solid fa-lock" style="margin-right:5px;"></i>Şifre <span style="color:#DC2626;">*</span></label>
+        <div class="password-input-wrap">
+          <input type="password" id="auth-password-input" placeholder="En az 6 karakter" maxlength="128" />
+          <button class="btn-show-pw" type="button" onclick="togglePasswordVisibility()" aria-label="Şifreyi göster">
+            <i class="fa-solid fa-eye" id="pw-eye-icon"></i>
+          </button>
+        </div>
+        <div class="form-error-msg" id="auth-password-error">En az 6 karakter giriniz.</div>
+      </div>
+
+      <div id="auth-feedback" class="auth-feedback" style="display:none;"></div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+        <button class="btn btn-ghost" onclick="closeModal('auth-modal')">İptal</button>
+        <button class="btn btn-primary-sage" id="auth-submit-btn" onclick="handleEmailAuth()">
+          <i class="fa-solid fa-right-to-bracket"></i> <span id="auth-btn-label">Giriş Yap</span>
+        </button>
+      </div>
+
+      <div id="auth-config-warning" style="display:none;" class="auth-config-warn">
+        ⚠️ Firebase config eksik. <code>firebase-config.js</code> dosyasındaki placeholder değerleri kendi Firebase proje bilgilerinle değiştir.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── New Category Modal ── -->
+<div class="modal-overlay" id="category-modal" onclick="closeModalOnOverlay(event,'category-modal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>📁 Yeni Kategori Aç</h3>
+      <button class="modal-close" onclick="closeModal('category-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label for="cat-name-input">Kategori Adı <span style="color:#DC2626;">*</span></label>
+      <input type="text" id="cat-name-input" placeholder="Örn: Ege Turu 2026" maxlength="60" />
+      <div class="form-error-msg" id="cat-name-error">Lütfen bir kategori adı girin.</div>
+    </div>
+    <div class="form-group">
+      <label for="cat-desc-input">Kısa Açıklama <span style="color:var(--text-soft);font-weight:400;">(isteğe bağlı)</span></label>
+      <input type="text" id="cat-desc-input" placeholder="Bu kategori hakkında birkaç kelime..." maxlength="100" />
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn btn-ghost" onclick="closeModal('category-modal')">İptal</button>
+      <button class="btn" id="cat-save-btn" onclick="saveCategory()">
+        <i class="fa-solid fa-check"></i> Oluştur
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── New Topic Modal ── -->
+<div class="modal-overlay" id="topic-modal" onclick="closeModalOnOverlay(event,'topic-modal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>✍️ Yeni Yazı Ekle</h3>
+      <button class="modal-close" onclick="closeModal('topic-modal')">✕</button>
+    </div>
+    <!-- QA reply context banner -->
+    <div id="topic-reply-context" style="display:none;" class="reply-context-banner"></div>
+    <div class="form-group">
+      <label for="topic-title-input">Başlık <span style="color:#DC2626;">*</span></label>
+      <input type="text" id="topic-title-input" placeholder="Örn: Roma'da En İyi Pizzacı" maxlength="80" />
+      <div class="form-error-msg" id="topic-title-error">Lütfen bir başlık girin.</div>
+    </div>
+    <div class="form-group">
+      <label for="topic-content-input">İçerik <span style="color:#DC2626;">*</span></label>
+      <textarea id="topic-content-input" placeholder="Deneyimini, tarifini veya notlarını buraya yaz..."></textarea>
+      <div class="form-error-msg" id="topic-content-error">Lütfen bir içerik girin.</div>
+    </div>
+    <!-- ── Mutfak Only: Tags ── -->
+    <div id="mutfak-tags-group" class="tags-select-section" style="display:none;">
+      <label style="margin-bottom:10px;display:block;font-size:0.85rem;">🏷️ Tarif Etiketleri <span style="color:var(--text-soft);font-weight:400;">(isteğe bağlı, çoklu seçim)</span></label>
+      <div class="tag-checkboxes" id="tag-checkboxes">
+        <label class="tag-checkbox-label"><input type="checkbox" name="topic-tag" value="Sağlıklı" /><span>🥦 Sağlıklı</span></label>
+        <label class="tag-checkbox-label"><input type="checkbox" name="topic-tag" value="Protein Deposu" /><span>💪 Protein Deposu</span></label>
+        <label class="tag-checkbox-label"><input type="checkbox" name="topic-tag" value="Lezzetli Akşam Yemeği" /><span>🍽️ Lezzetli Akşam Yemeği</span></label>
+        <label class="tag-checkbox-label"><input type="checkbox" name="topic-tag" value="Tatlı" /><span>🍰 Tatlı</span></label>
+      </div>
+    </div>
+    <!-- ── Mutfak Only: Macro Ingredients ── -->
+    <div id="mutfak-ingredients-group" class="ingredients-calc-section" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+        <label style="margin:0;font-size:0.85rem;">🥗 Tarif Malzemeleri <span style="color:var(--text-soft);font-weight:400;">(Makro hesaplama için)</span></label>
+        <button class="calc-btn" type="button" onclick="previewMacros('ingredients-input','macro-live-preview')">
+          <i class="fa-solid fa-calculator"></i> Hesapla
+        </button>
+      </div>
+      <textarea id="ingredients-input" placeholder="Her satıra bir malzeme yaz. Örn:
+200g tavuk göğsü
+1 su bardağı pirinç
+2 yemek kaşığı zeytinyağı
+3 diş sarımsak
+1 adet soğan" style="height:120px;font-size:0.82rem;"></textarea>
+      <div class="field-hint" style="margin-top:6px;">Miktar + birim + isim formatında yaz. Otomatik analiz yapar.</div>
+      <div id="macro-live-preview" class="macro-live-preview"></div>
+    </div>
+    <div class="form-group">
+      <label>Fotoğraf Ekle <span style="color:var(--text-soft);font-weight:400;">(isteğe bağlı, birden fazla seçebilirsin)</span></label>
+      <div class="img-drop-zone" id="img-drop-zone" onclick="document.getElementById('img-file-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event,'img-preview-list')">
+        <input type="file" id="img-file-input" accept="image/*" multiple style="display:none;" onchange="handleFileSelect(event,'img-preview-list')" />
+        <div class="drop-zone-inner">
+          <i class="fa-solid fa-cloud-arrow-up drop-icon"></i>
+          <span class="drop-text">Tıkla veya sürükle &amp; bırak</span>
+          <span class="drop-hint">JPG, PNG, GIF, WEBP — max 5 MB/resim</span>
+        </div>
+      </div>
+      <div class="img-preview-list" id="img-preview-list"></div>
+    </div>
+    <div class="form-group">
+      <label>İlgili Linkler <span style="color:var(--text-soft);font-weight:400;">(YouTube, Instagram, Blog vb. — isteğe bağlı)</span></label>
+      <div class="link-rows" id="link-rows-container">
+        <!-- Rows will be injected here -->
+      </div>
+      <button class="add-link-btn" onclick="addLinkRow()" style="margin-top:8px;">
+        <i class="fa-solid fa-plus"></i> Link Ekle
+      </button>
+      <div class="field-hint">Desteklenen: YouTube, Instagram, Twitter/X, Spotify, Blog, veya herhangi bir URL</div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn btn-ghost" onclick="closeModal('topic-modal')">İptal</button>
+      <button class="btn" id="topic-save-btn" onclick="saveTopic()">
+        <i class="fa-solid fa-check"></i> Kaydet
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit Topic Modal ── -->
+<div class="modal-overlay" id="edit-topic-modal" onclick="closeModalOnOverlay(event,'edit-topic-modal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>✏️ Yazıyı Düzenle</h3>
+      <button class="modal-close" onclick="closeModal('edit-topic-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label for="edit-topic-title">Başlık <span style="color:#DC2626;">*</span></label>
+      <input type="text" id="edit-topic-title" maxlength="80" />
+      <div class="form-error-msg" id="edit-topic-title-error">Lütfen bir başlık girin.</div>
+    </div>
+    <div class="form-group">
+      <label for="edit-topic-content">İçerik <span style="color:#DC2626;">*</span></label>
+      <textarea id="edit-topic-content"></textarea>
+      <div class="form-error-msg" id="edit-topic-content-error">Lütfen bir içerik girin.</div>
+    </div>
+    <!-- ── Mutfak Only: Tags (Edit) ── -->
+    <div id="edit-mutfak-tags-group" class="tags-select-section" style="display:none;">
+      <label style="margin-bottom:10px;display:block;font-size:0.85rem;">🏷️ Tarif Etiketleri</label>
+      <div class="tag-checkboxes" id="edit-tag-checkboxes">
+        <label class="tag-checkbox-label"><input type="checkbox" name="edit-topic-tag" value="Sağlıklı" /><span>🥦 Sağlıklı</span></label>
+        <label class="tag-checkbox-label"><input type="checkbox" name="edit-topic-tag" value="Protein Deposu" /><span>💪 Protein Deposu</span></label>
+        <label class="tag-checkbox-label"><input type="checkbox" name="edit-topic-tag" value="Lezzetli Akşam Yemeği" /><span>🍽️ Lezzetli Akşam Yemeği</span></label>
+        <label class="tag-checkbox-label"><input type="checkbox" name="edit-topic-tag" value="Tatlı" /><span>🍰 Tatlı</span></label>
+      </div>
+    </div>
+    <!-- ── Mutfak Only: Macro Ingredients (Edit) ── -->
+    <div id="edit-mutfak-ingredients-group" class="ingredients-calc-section" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+        <label style="margin:0;font-size:0.85rem;">🥗 Tarif Malzemeleri <span style="color:var(--text-soft);font-weight:400;">(Makro hesaplama için)</span></label>
+        <button class="calc-btn" type="button" onclick="previewMacros('edit-ingredients-input','edit-macro-live-preview')">
+          <i class="fa-solid fa-calculator"></i> Hesapla
+        </button>
+      </div>
+      <textarea id="edit-ingredients-input" placeholder="Her satıra bir malzeme yaz. Örn:
+200g tavuk göğsü
+1 su bardağı pirinç
+2 yemek kaşığı zeytinyağı" style="height:120px;font-size:0.82rem;"></textarea>
+      <div class="field-hint" style="margin-top:6px;">Miktar + birim + isim formatında yaz. Otomatik analiz yapar.</div>
+      <div id="edit-macro-live-preview" class="macro-live-preview"></div>
+    </div>
+    <div class="form-group">
+      <label>Fotoğraflar <span style="color:var(--text-soft);font-weight:400;">(isteğe bağlı)</span></label>
+      <div class="img-drop-zone" id="edit-img-drop-zone" onclick="document.getElementById('edit-img-file-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event,'edit-img-preview-list')">
+        <input type="file" id="edit-img-file-input" accept="image/*" multiple style="display:none;" onchange="handleFileSelect(event,'edit-img-preview-list')" />
+        <div class="drop-zone-inner">
+          <i class="fa-solid fa-cloud-arrow-up drop-icon"></i>
+          <span class="drop-text">Tıkla veya sürükle &amp; bırak</span>
+          <span class="drop-hint">JPG, PNG, GIF, WEBP — max 5 MB/resim</span>
+        </div>
+      </div>
+      <div class="img-preview-list" id="edit-img-preview-list"></div>
+    </div>
+    <div class="form-group">
+      <label>İlgili Linkler</label>
+      <div class="link-rows" id="edit-link-rows-container"></div>
+      <button class="add-link-btn" onclick="addEditLinkRow()" style="margin-top:8px;">
+        <i class="fa-solid fa-plus"></i> Link Ekle
+      </button>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:space-between;margin-top:8px;flex-wrap:wrap;">
+      <button class="btn btn-danger" onclick="deleteCurrentTopic()">
+        <i class="fa-solid fa-trash"></i> Yazıyı Sil
+      </button>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-ghost" onclick="closeModal('edit-topic-modal')">İptal</button>
+        <button class="btn" id="edit-topic-save-btn" onclick="saveEditTopic()">
+          <i class="fa-solid fa-check"></i> Güncelle
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ TOAST CONTAINER ═══════════════════════ -->
+<div id="toast-container"></div>
+
+<!-- ── AI CHATBOT WIDGET ── -->
+<div id="chatbot-wrapper" style="position: fixed; bottom: 20px; right: 20px; z-index: 100;">
+  <button id="chatbot-toggle-btn" class="btn" style="width: 54px; height: 54px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--primary); color: white; box-shadow: 0 4px 14px rgba(0,0,0,0.2); font-size: 1.4rem;" onclick="toggleChatbot()">
+    <i class="fa-solid fa-message"></i>
+  </button>
+  
+  <div id="chatbot-window" style="display: none; position: absolute; bottom: 70px; right: 0; width: 320px; height: 400px; background: var(--bg-card); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.15); border: 1px solid var(--border-soft); display: flex; flex-direction: column; overflow: hidden; transform-origin: bottom right; transition: all 0.2s;">
+    <div style="background: var(--primary); color: white; padding: 12px 16px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+      <span><i class="fa-solid fa-robot" style="margin-right: 6px;"></i> Akıllı Asistan</span>
+      <button onclick="toggleChatbot()" style="background: none; border: none; color: white; cursor: pointer; padding: 4px;"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="chatbot-messages" style="flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: var(--bg-body); font-size: 0.85rem;">
+      <div style="background: #EAF2EE; color: #1F2937; padding: 10px 14px; border-radius: 12px; border-bottom-left-radius: 4px; max-width: 85%; align-self: flex-start;">
+        Merhaba! Platform içerisindeki herhangi bir konuyu (örn: "makarna tarifleri", "kamp malzemeleri") bana sorabilirsiniz. Size hemen yardımcı olayım. 😊
+      </div>
+    </div>
+    <div style="padding: 12px; background: var(--bg-card); border-top: 1px solid var(--border-soft); display: flex; gap: 8px;">
+      <input type="text" id="chatbot-input" placeholder="Bir şeyler sorun..." onkeypress="if(event.key === 'Enter') sendChatMessage()" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-soft); font-size: 0.85rem;" autocomplete="off" />
+      <button class="btn btn-primary-peach" style="padding: 8px 12px;" onclick="sendChatMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ SCRIPTS ═══════════════════════════════ -->
+<!-- Firebase config (kendi bilgilerinle doldur) -->
+<script src="firebase-config.js"></script>
+<!-- Ana uygulama -->
+<script src="app.js"></script>
+</body>
+</html>
