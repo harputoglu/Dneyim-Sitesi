@@ -723,15 +723,32 @@ function showToast(msg, type = 'success', duration = 3000) {
   }, duration);
 }
 
-// ─── Modal Helpers ───────────────────────────────────────────────────────────
 function openModal(id) {
   document.getElementById(id).classList.add('open');
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
 }
+
+// Track where the mouse button was pressed so we can distinguish
+// a real backdrop click from a drag that started inside the modal.
+let _modalMouseDownTarget = null;
+
+document.addEventListener('mousedown', e => {
+  _modalMouseDownTarget = e.target;
+}, true);
+
 function closeModalOnOverlay(e, id) {
-  if (e.target === e.currentTarget) closeModal(id);
+  // Only close if BOTH mousedown AND mouseup (the click) targeted the backdrop.
+  // If the user started a text selection inside the modal box and released
+  // the mouse outside (on the backdrop), _modalMouseDownTarget will be an
+  // element inside .modal-box, so the check below will prevent closing.
+  if (
+    e.target === e.currentTarget &&
+    _modalMouseDownTarget === e.currentTarget
+  ) {
+    closeModal(id);
+  }
 }
 
 // ─── Navigation ──────────────────────────────────────────────────────────────
