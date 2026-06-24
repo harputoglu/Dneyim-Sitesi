@@ -6,10 +6,9 @@ let supabaseClient = null;
 try {
   if (typeof supabase !== 'undefined') {
     supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('[Supabase] Bağlantı başarılı.');
-  } else {
-    console.warn('[Supabase] supabase kütüphanesi yüklenemedi.');
+    console.log('✅ Supabase başlatıldı.');
   }
 } catch (e) {
-  console.error('[Supabase] Başlatma hatası:', e.message);
+  console.warn('⚠️ Supabase başlatılamadı, localStorage fallback kullanılacak:', e.message);
+  supabaseClient = null;
 }
