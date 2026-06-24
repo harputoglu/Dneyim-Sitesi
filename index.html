@@ -534,12 +534,12 @@
 
 <!-- ── AI CHATBOT WIDGET ── -->
 <div id="chatbot-wrapper" style="position: fixed; bottom: 20px; right: 20px; z-index: 100;">
-  <button id="chatbot-toggle-btn" class="btn" style="width: 54px; height: 54px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--primary); color: white; box-shadow: 0 4px 14px rgba(0,0,0,0.2); font-size: 1.4rem;" onclick="toggleChatbot()">
+  <button id="chatbot-toggle-btn" class="btn" style="width: 54px; height: 54px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; background: #374151; color: white; box-shadow: 0 4px 14px rgba(0,0,0,0.2); font-size: 1.4rem;" onclick="toggleChatbot()">
     <i class="fa-solid fa-message"></i>
   </button>
   
-  <div id="chatbot-window" style="display: none; position: absolute; bottom: 70px; right: 0; width: 320px; height: 400px; background: var(--bg-card); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.15); border: 1px solid var(--border-soft); display: flex; flex-direction: column; overflow: hidden; transform-origin: bottom right; transition: all 0.2s;">
-    <div style="background: var(--primary); color: white; padding: 12px 16px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+  <div id="chatbot-window" style="display: none; position: absolute; bottom: 70px; right: 0; width: 320px; height: 400px; background: var(--bg-card); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.15); border: 1px solid var(--border-soft); flex-direction: column; overflow: hidden; transform-origin: bottom right; transition: all 0.2s;">
+    <div style="background: #374151; color: white; padding: 12px 16px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
       <span><i class="fa-solid fa-robot" style="margin-right: 6px;"></i> Akıllı Asistan</span>
       <button onclick="toggleChatbot()" style="background: none; border: none; color: white; cursor: pointer; padding: 4px;"><i class="fa-solid fa-xmark"></i></button>
     </div>
