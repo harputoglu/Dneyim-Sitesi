@@ -2132,10 +2132,89 @@ function markQuestionAnswered(page, catId, topicId, questionId, answerTopicId) {
   if (q) q.answeredTopicId = answerTopicId;
 }
 
+// ─── Home Feed & Navigation ───────────────────────────────────────────────────
+function goHome() {
+  state.activePage = null;
+  state.activeCatId = null;
+  state.activeTopicId = null;
+  
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  
+  const topbarTitle = document.getElementById('topbar-title');
+  if (topbarTitle) {
+    topbarTitle.innerHTML = `<img src="group.jpg" alt="" style="width:28px;height:28px;border-radius:7px;object-fit:cover;object-position:center top;flex-shrink:0;" /> Kültür Sanat ve Yaşam Sözlüğü`;
+  }
+  
+  const mc = document.getElementById('main-content');
+  if (mc) mc.className = '';
+  
+  showView('welcome-view');
+  renderHomeFeed();
+  closeSidebar();
+}
+
+function renderHomeFeed() {
+  const feedList = document.getElementById('home-feed-list');
+  if (!feedList) return;
+  feedList.innerHTML = '';
+  
+  let allTopics = [];
+  
+  Object.keys(db).forEach(pageKey => {
+    if (pageKey === 'version') return;
+    const pageData = db[pageKey];
+    if (pageData && pageData.categories) {
+      pageData.categories.forEach(cat => {
+        if (cat.topics) {
+          cat.topics.forEach(topic => {
+            allTopics.push({ topic, pageKey, catId: cat.id });
+          });
+        }
+      });
+    }
+  });
+  
+  // Sort by date descending
+  allTopics.sort((a, b) => new Date(b.topic.createdAt) - new Date(a.topic.createdAt));
+  
+  const topTopics = allTopics.slice(0, 15);
+  
+  if (topTopics.length === 0) {
+    feedList.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🍃</div>
+        <h3>Henüz İçerik Yok</h3>
+        <p>Sol menüden bir kategori seçip ilk yazıyı sen ekleyebilirsin.</p>
+      </div>`;
+    return;
+  }
+  
+  topTopics.forEach((item, idx) => {
+    const card = document.createElement('div');
+    card.className = `topic-card animate-in stagger-${Math.min(idx + 1, 4)}`;
+    card.style.cursor = 'pointer';
+    card.onclick = () => navigateTo(item.pageKey, item.catId, item.topic.id);
+    
+    card.innerHTML = createTopicCardHtml(item.topic, item.pageKey, item.catId, idx);
+    
+    const catObj = (db[item.pageKey]?.categories || []).find(c => c.id === item.catId);
+    const catName = catObj ? catObj.name : 'Kategori';
+    const contextHtml = `<div style="font-size:0.75rem; color:var(--text-soft); font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+      <span>${PAGES[item.pageKey]?.emoji} ${PAGES[item.pageKey]?.title}</span>
+      <i class="fa-solid fa-chevron-right" style="font-size:0.6rem;opacity:0.5;"></i>
+      <span>${escHtml(catName)}</span>
+    </div>`;
+    
+    card.insertAdjacentHTML('afterbegin', contextHtml);
+    feedList.appendChild(card);
+  });
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (async function init() {
   await loadDB();
   showView('welcome-view');
+  renderHomeFeed();
 
   // Start Supabase auth listener (session persistence)
   initSupabaseAuthListener();

@@ -26,7 +26,7 @@
 
 <!-- ═══════════════════════════════════════ SIDEBAR ═══════════════════════ -->
 <aside id="sidebar">
-  <div class="brand">
+  <div class="brand" onclick="goHome()" style="cursor:pointer;" title="Ana Sayfaya Dön">
     <img src="group.jpg" alt="Arkadaş grubu" class="brand-group-img" />
     <h1>Kültür Sanat ve<br/>Yaşam Sözlüğü</h1>
     <p>Ortak deneyim köşemiz</p>
@@ -110,7 +110,7 @@
     <button class="btn btn-icon-only" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menü aç" style="border-radius:10px;width:40px;height:40px;">
       <i class="fa-solid fa-bars"></i>
     </button>
-    <span id="topbar-title" style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:0.93rem;flex:1;">
+    <span id="topbar-title" onclick="goHome()" style="cursor:pointer; display:flex;align-items:center;gap:8px;font-weight:700;font-size:0.93rem;flex:1;">
       <img src="group.jpg" alt="" style="width:28px;height:28px;border-radius:7px;object-fit:cover;object-position:center top;" />
       Kültür Sanat ve Yaşam Sözlüğü
     </span>
@@ -158,6 +158,14 @@
             <div class="wc-title">Gezi Rehberi</div>
             <div class="wc-desc">Rotalar, seyahat notları</div>
           </div>
+        </div>
+
+        <!-- ── Yeni Eklenenler (Feed) ── -->
+        <div class="feed-section animate-in stagger-2" style="margin-top: 40px; text-align: left;">
+          <h3 style="font-size: 1.2rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid var(--border-soft); padding-bottom: 8px;">
+            <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary);"></i> Son Eklenenler
+          </h3>
+          <div id="home-feed-list" style="display:flex;flex-direction:column;gap:14px;"></div>
         </div>
       </div>
     </div>
