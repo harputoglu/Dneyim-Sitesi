@@ -887,7 +887,7 @@ function getCategoryEmoji(pageKey, idx) {
 function calculateInteractions(topic) {
   let likes = 0, dislikes = 0, userLike = 0;
   let isFavorite = false;
-  const user = window.currentUser || state.user;
+  const user = getCurrentUser();
   const uid = user ? (user.email || user.displayName) : null;
 
   if (topic.likes) {
@@ -2249,7 +2249,7 @@ function renderHomeFeed() {
 })();
 // ─── Interactions (Likes & Favorites) ───────────────────────────────────────────
 function toggleLike(pageKey, catId, topicId, val) {
-  const user = window.currentUser || state.user;
+  const user = getCurrentUser();
   if (!user) {
     showToast('Lütfen giriş yapın', 'error');
     openModal('auth-modal');
@@ -2286,7 +2286,7 @@ function toggleLike(pageKey, catId, topicId, val) {
 }
 
 function toggleFavorite(pageKey, catId, topicId) {
-  const user = window.currentUser || state.user;
+  const user = getCurrentUser();
   if (!user) {
     showToast('Lütfen giriş yapın', 'error');
     openModal('auth-modal');
@@ -2356,7 +2356,7 @@ function renderFavorites() {
   const list = document.getElementById('topics-list');
   list.innerHTML = '';
 
-  const user = window.currentUser || state.user;
+  const user = getCurrentUser();
   if (!user) {
     list.innerHTML = `
       <div class="empty-state">
