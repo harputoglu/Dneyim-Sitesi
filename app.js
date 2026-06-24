@@ -483,14 +483,33 @@ async function loadDB() {
 }
 
 async function saveDB() {
+  // 1. Always write to localStorage immediately so the user never loses data
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(db));
-    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-      await supabaseClient.from('app_state').upsert({ id: 1, data: db });
+  } catch (lsErr) {
+    console.error('[saveDB] localStorage yazma hatası:', lsErr);
+  }
+
+  // 2. Sync to Supabase if available
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+    try {
+      const { error } = await supabaseClient
+        .from('app_state')
+        .upsert({
+          id:         1,
+          data:       db,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
+
+      if (error) {
+        // Log the full Supabase error object for debugging
+        console.error('[saveDB] Supabase upsert hatası:', error.message, error.details, error.hint, error.code);
+        showToast('Sunucuya kaydedilemedi, yerel kopya güncellendi.', 'error');
+      }
+    } catch (netErr) {
+      console.error('[saveDB] Ağ/Supabase istisnası:', netErr);
+      showToast('İnternet bağlantısı yok, veriler yerel olarak kaydedildi.', 'error');
     }
-  } catch (e) {
-    console.error('DB save error:', e);
-    showToast('Veriler kaydedilemedi!', 'error');
   }
 }
 
