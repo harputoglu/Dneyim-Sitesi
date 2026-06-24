@@ -444,41 +444,66 @@ function getMockData() {
 
 // \u2500\u2500\u2500 LocalStorage Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 async function loadDB() {
+  // ── STEP 1: Paint from localStorage instantly (zero-latency warm start) ──
   try {
-    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-      const { data, error } = await supabaseClient.from('app_state').select('data').eq('id', 1).single();
-      if (data && data.data) {
+    const cached = localStorage.getItem(LS_KEY);
+    if (cached) {
+      db = JSON.parse(cached);
+      // Guarantee every page key exists so the rest of the app never crashes
+      Object.keys(PAGES).forEach(key => {
+        if (!db[key])             db[key] = { categories: [] };
+        if (!db[key].categories)  db[key].categories = [];
+      });
+      console.log('[loadDB] localStorage önbelleği yüklendi.');
+    }
+  } catch (lsErr) {
+    console.warn('[loadDB] localStorage parse hatası, atlanıyor:', lsErr.message);
+  }
+
+  // ── STEP 2: Fetch authoritative data from Supabase ───────────────────────
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('app_state')
+        .select('data')
+        .eq('id', 1)
+        .single();
+
+      if (error) {
+        // PGRST116 = "no rows returned" → first run, not a real error
+        if (error.code !== 'PGRST116') {
+          console.error('[loadDB] Supabase SELECT hatası:', error.message, '| kod:', error.code, '| hint:', error.hint);
+        } else {
+          console.log('[loadDB] Supabase\'de henüz kayıt yok (ilk kullanım), localStorage/mock ile devam ediliyor.');
+        }
+      } else if (data && data.data) {
+        // ✅ Got fresh data from Supabase — overwrite local cache
         db = data.data;
         Object.keys(PAGES).forEach(key => {
-          if (!db[key]) db[key] = { categories: [] };
+          if (!db[key])            db[key] = { categories: [] };
           if (!db[key].categories) db[key].categories = [];
         });
-        localStorage.setItem(LS_KEY, JSON.stringify(db));
-        return;
+        // Keep localStorage in sync so next refresh is instant
+        try { localStorage.setItem(LS_KEY, JSON.stringify(db)); } catch {}
+        console.log('[loadDB] Supabase\'den güncel veri yüklendi.');
+        return; // Done — Supabase data is the truth
       }
+    } catch (netErr) {
+      console.error('[loadDB] Supabase ağ/istisna hatası:', netErr.message ?? netErr);
+      // Continue — we'll use whatever we got from localStorage in Step 1
     }
-  } catch (e) { console.warn('Supabase loadDB hatası:', e.message); }
+  }
 
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (raw) {
-      db = JSON.parse(raw);
-      Object.keys(PAGES).forEach(key => {
-        if (!db[key]) db[key] = { categories: [] };
-        if (!db[key].categories) db[key].categories = [];
-      });
-    } else {
-      const mock = getMockData();
-      db = {};
-      Object.keys(PAGES).forEach(key => {
-        db[key] = mock[key] || { categories: [] };
-      });
-      await saveDB();
-    }
-  } catch (e) {
-    console.error('DB load error:', e);
+  // ── STEP 3: If we still have no db at all, seed with mock data ───────────
+  const hasData = db && Object.keys(PAGES).some(k => (db[k]?.categories || []).length > 0);
+  if (!hasData) {
+    console.log('[loadDB] Veri bulunamadı, örnek veriler yükleniyor...');
+    const mock = getMockData();
     db = {};
-    Object.keys(PAGES).forEach(key => { db[key] = { categories: [] }; });
+    Object.keys(PAGES).forEach(key => { db[key] = mock[key] || { categories: [] }; });
+    // Persist mock to localStorage and try to push to Supabase
+    try { localStorage.setItem(LS_KEY, JSON.stringify(db)); } catch {}
+    await saveDB(); // Best-effort — won't throw if Supabase is down
   }
 }
 
