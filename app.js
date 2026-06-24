@@ -884,7 +884,12 @@ function renderCategoryList() {
         <span style="font-weight:700;">${topicCount}</span> yazı
       </div>
       <div class="card-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+      <button class="btn btn-ghost" style="position:absolute;top:10px;right:10px;padding:5px 10px;font-size:0.75rem;z-index:2;"
+        onclick="event.stopPropagation(); openEditCategory('${cat.id}')">
+        <i class="fa-solid fa-pen"></i>
+      </button>
     `;
+    card.style.position = 'relative';
     grid.appendChild(card);
   });
 }
@@ -1367,6 +1372,46 @@ function saveCategory() {
   showToast(`"${name}" kategorisi oluşturuldu! 📁`, 'success');
 }
 
+function openEditCategory(catId) {
+  const cats = db[state.activePage].categories;
+  const cat = cats.find(c => c.id === catId);
+  if (!cat) return;
+  document.getElementById('edit-cat-id').value = catId;
+  document.getElementById('edit-cat-name-input').value = cat.name;
+  document.getElementById('edit-cat-desc-input').value = cat.desc || '';
+  document.getElementById('edit-cat-name-error').classList.remove('show');
+  document.getElementById('edit-cat-name-input').classList.remove('form-error');
+  openModal('edit-category-modal');
+}
+
+function saveEditCategory() {
+  const catId  = document.getElementById('edit-cat-id').value;
+  const nameEl = document.getElementById('edit-cat-name-input');
+  const descEl = document.getElementById('edit-cat-desc-input');
+  const errEl  = document.getElementById('edit-cat-name-error');
+  const name   = nameEl.value.trim();
+
+  if (!name) {
+    nameEl.classList.add('form-error');
+    errEl.classList.add('show');
+    return;
+  }
+  nameEl.classList.remove('form-error');
+  errEl.classList.remove('show');
+
+  const cats = db[state.activePage].categories;
+  const cat  = cats.find(c => c.id === catId);
+  if (!cat) return;
+
+  cat.name = name;
+  cat.desc = descEl.value.trim();
+  saveDB();
+
+  closeModal('edit-category-modal');
+  renderCategoryList();
+  showToast(`"${name}" kategorisi güncellendi! ✏️`, 'success');
+}
+
 // ─── Link Row Helpers (New Topic Modal) ──────────────────────────────────────
 function addLinkRow(containerId = 'link-rows-container') {
   const container = document.getElementById(containerId);
@@ -1638,7 +1683,7 @@ function escAttr(str) {
 // ─── Keyboard Accessibility ───────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    ['category-modal','topic-modal','edit-topic-modal','auth-modal'].forEach(id => closeModal(id));
+    ['category-modal','edit-category-modal','topic-modal','edit-topic-modal','auth-modal'].forEach(id => closeModal(id));
     closeSidebar();
   }
   // Allow Enter key on nav items

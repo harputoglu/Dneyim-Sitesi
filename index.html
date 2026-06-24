@@ -356,6 +356,32 @@
   </div>
 </div>
 
+<!-- ── Edit Category Modal ── -->
+<div class="modal-overlay" id="edit-category-modal" onclick="closeModalOnOverlay(event,'edit-category-modal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>✏️ Kategoriyi Düzenle</h3>
+      <button class="modal-close" onclick="closeModal('edit-category-modal')">✕</button>
+    </div>
+    <input type="hidden" id="edit-cat-id" />
+    <div class="form-group">
+      <label for="edit-cat-name-input">Kategori Adı <span style="color:#DC2626;">*</span></label>
+      <input type="text" id="edit-cat-name-input" placeholder="Örn: Ege Turu 2026" maxlength="60" />
+      <div class="form-error-msg" id="edit-cat-name-error">Lütfen bir kategori adı girin.</div>
+    </div>
+    <div class="form-group">
+      <label for="edit-cat-desc-input">Kısa Açıklama <span style="color:var(--text-soft);font-weight:400;">(isteğe bağlı)</span></label>
+      <input type="text" id="edit-cat-desc-input" placeholder="Bu kategori hakkında birkaç kelime..." maxlength="100" />
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn btn-ghost" onclick="closeModal('edit-category-modal')">İptal</button>
+      <button class="btn" onclick="saveEditCategory()">
+        <i class="fa-solid fa-check"></i> Kaydet
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ── New Topic Modal ── -->
 <div class="modal-overlay" id="topic-modal" onclick="closeModalOnOverlay(event,'topic-modal')">
   <div class="modal-box">
