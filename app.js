@@ -518,21 +518,26 @@ async function saveDB() {
   // 2. Sync to Supabase if available
   if (typeof supabaseClient !== 'undefined' && supabaseClient) {
     try {
+      // Log exactly what we're sending so mismatches are visible
+      console.log('[saveDB] Supabase\'e gönderilen payload:', { id: 1, data_keys: Object.keys(db) });
+
       const { error } = await supabaseClient
         .from('app_state')
-        .upsert({
-          id:         1,
-          data:       db,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'id' });
+        .upsert({ id: 1, data: db }, { onConflict: 'id' });
 
       if (error) {
-        // Log the full Supabase error object for debugging
-        console.error('[saveDB] Supabase upsert hatası:', error.message, error.details, error.hint, error.code);
+        // Print the FULL raw error object so we can diagnose the exact rejection reason
+        console.error('[saveDB] Supabase upsert HATASI (tam):', JSON.stringify(error, null, 2));
+        console.error('[saveDB] → message:', error.message);
+        console.error('[saveDB] → code:', error.code);
+        console.error('[saveDB] → details:', error.details);
+        console.error('[saveDB] → hint:', error.hint);
         showToast('Sunucuya kaydedilemedi, yerel kopya güncellendi.', 'error');
+      } else {
+        console.log('[saveDB] Supabase\'e başarıyla kaydedildi ✅');
       }
     } catch (netErr) {
-      console.error('[saveDB] Ağ/Supabase istisnası:', netErr);
+      console.error('[saveDB] Ağ/Supabase istisnası (tam):', netErr);
       showToast('İnternet bağlantısı yok, veriler yerel olarak kaydedildi.', 'error');
     }
   }
