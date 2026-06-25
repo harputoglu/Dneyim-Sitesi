@@ -1584,6 +1584,8 @@ function saveTopic() {
   document.getElementById('topic-reply-context').style.display = 'none';
 
   renderTopicList();
+  // Refresh the homepage feed so the new post appears in "Son Eklenenler"
+  renderHomeFeed();
   const kcalMsg = macros && macros.calories > 0 ? ` (🔥 ${Math.round(macros.calories)} kcal)` : '';
   showToast(`"${title}" yazısı eklendi!${kcalMsg}`, 'success');
 }
@@ -2285,8 +2287,12 @@ function renderHomeFeed() {
     }
   });
   
-  // Sort by date descending
-  allTopics.sort((a, b) => new Date(b.topic.createdAt) - new Date(a.topic.createdAt));
+  // Sort by date descending — handle both 'date' and 'createdAt' field names
+  allTopics.sort((a, b) => {
+    const dateA = new Date(b.topic.date || b.topic.createdAt || 0);
+    const dateB = new Date(a.topic.date || a.topic.createdAt || 0);
+    return dateA - dateB;
+  });
   
   const topTopics = allTopics.slice(0, 15);
   
