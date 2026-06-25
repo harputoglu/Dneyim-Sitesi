@@ -1682,7 +1682,7 @@ function saveEditTopic() {
   showToast('Yazı güncellendi! ✅', 'success');
 }
 
-function deleteCurrentTopic() {
+async function deleteCurrentTopic() {
   if (!confirm('Bu yazıyı silmek istediğine emin misin?')) return;
 
   const cats = db[state.activePage].categories;
@@ -1692,15 +1692,25 @@ function deleteCurrentTopic() {
   const idx = (cat.topics || []).findIndex(t => t.id === state.activeTopicId);
   if (idx === -1) return;
 
-  const title = cat.topics[idx].title;
-  cat.topics.splice(idx, 1);
-  saveDB();
+  const title        = cat.topics[idx].title;
+  const deletedTopic = cat.topics.splice(idx, 1)[0]; // remove from db
 
-  closeModal('edit-topic-modal');
-  state.activeTopicId  = null;
-  state.editingTopicId = null;
-  navigateTo(state.activePage, state.activeCatId);
-  showToast(`"${title}" yazısı silindi.`, 'info');
+  // Persist deletion — await so we know if it actually reached Supabase
+  try {
+    await saveDB();
+    // ✅ Deletion confirmed (localStorage + Supabase updated)
+    closeModal('edit-topic-modal');
+    state.activeTopicId  = null;
+    state.editingTopicId = null;
+    renderHomeFeed(); // remove from feed too
+    navigateTo(state.activePage, state.activeCatId);
+    showToast(`"${title}" yazısı silindi.`, 'info');
+  } catch (err) {
+    // ❌ Save failed — put the topic back to avoid data inconsistency
+    console.error('[deleteCurrentTopic] Silme kaydedilemedi, geri alınıyor:', err);
+    cat.topics.splice(idx, 0, deletedTopic); // rollback
+    showToast('Silme işlemi sunucuya kaydedilemedi. Lütfen tekrar deneyin.', 'error');
+  }
 }
 
 // ─── Mobile Sidebar ───────────────────────────────────────────────────────────
