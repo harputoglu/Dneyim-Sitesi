@@ -1491,7 +1491,7 @@ function getLinkRowValues(containerId) {
 }
 
 // ─── Save Topic ───────────────────────────────────────────────────────────────
-function saveTopic() {
+async function saveTopic() {
   const titleEl   = document.getElementById('topic-title-input');
   const contentEl = document.getElementById('topic-content-input');
   const titleErr  = document.getElementById('topic-title-error');
@@ -1568,8 +1568,17 @@ function saveTopic() {
     markQuestionAnswered(replyMeta.origPage, replyMeta.origCatId, replyMeta.origTopicId, replyMeta.questionId, newTopic.id);
   }
 
-  saveDB();
+  try {
+    await saveDB(); // ← await so we know the write actually completed
+  } catch (err) {
+    // Rollback: remove the topic we just added
+    console.error('[saveTopic] Kaydetme başarısız, geri alınıyor:', err);
+    cat.topics.pop();
+    showToast('Yazı sunucuya kaydedilemedi. Lütfen tekrar deneyin.', 'error');
+    return;
+  }
 
+  // ✅ Saved successfully — now clean up the form
   closeModal('topic-modal');
   titleEl.value   = '';
   contentEl.value = '';
@@ -1584,7 +1593,6 @@ function saveTopic() {
   document.getElementById('topic-reply-context').style.display = 'none';
 
   renderTopicList();
-  // Refresh the homepage feed so the new post appears in "Son Eklenenler"
   renderHomeFeed();
   const kcalMsg = macros && macros.calories > 0 ? ` (🔥 ${Math.round(macros.calories)} kcal)` : '';
   showToast(`"${title}" yazısı eklendi!${kcalMsg}`, 'success');
@@ -1625,7 +1633,7 @@ function openEditTopicModal() {
   openModal('edit-topic-modal');
 }
 
-function saveEditTopic() {
+async function saveEditTopic() {
   const titleEl   = document.getElementById('edit-topic-title');
   const contentEl = document.getElementById('edit-topic-content');
   const titleErr  = document.getElementById('edit-topic-title-error');
@@ -1667,6 +1675,15 @@ function saveEditTopic() {
   const topic = (cat?.topics || []).find(t => t.id === state.editingTopicId);
   if (!topic) return;
 
+  // Save old values for rollback
+  const oldTitle       = topic.title;
+  const oldContent     = topic.content;
+  const oldLinks       = topic.links;
+  const oldImages      = topic.images;
+  const oldIngredients = topic.ingredients;
+  const oldMacros      = topic.macros;
+  const oldTags        = topic.tags;
+
   topic.title       = title;
   topic.content     = content;
   topic.links       = links;
@@ -1674,11 +1691,27 @@ function saveEditTopic() {
   topic.ingredients = ingredients || null;
   topic.macros      = macros;
   topic.tags        = tags;
-  saveDB();
+
+  try {
+    await saveDB(); // ← await so we confirm the write completed
+  } catch (err) {
+    // Rollback: restore the old values
+    console.error('[saveEditTopic] Güncelleme kaydedilemedi, geri alınıyor:', err);
+    topic.title       = oldTitle;
+    topic.content     = oldContent;
+    topic.links       = oldLinks;
+    topic.images      = oldImages;
+    topic.ingredients = oldIngredients;
+    topic.macros      = oldMacros;
+    topic.tags        = oldTags;
+    showToast('Güncelleme sunucuya kaydedilemedi. Lütfen tekrar deneyin.', 'error');
+    return;
+  }
 
   closeModal('edit-topic-modal');
   state.editingTopicId = null;
   renderTopicDetail();
+  renderHomeFeed();
   showToast('Yazı güncellendi! ✅', 'success');
 }
 
